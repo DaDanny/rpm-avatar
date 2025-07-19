@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows, Sphere } from '@react-three/drei';
+import { Environment, ContactShadows, Sphere } from '@react-three/drei';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import * as THREE from 'three';
 
@@ -41,32 +41,46 @@ function AvatarScene({ avatarUrl, isAvatarSpeaking }) {
           });
         }
         
-        // Set up new avatar for conference call view
+        // Set up new avatar for girlfriend view
         const newAvatar = gltf.scene;
         
-        // Scale and position for head/shoulders view
-        newAvatar.scale.setScalar(1.2);
+        // Scale appropriately for intimate conversation
+        newAvatar.scale.setScalar(2.2);
         
-        // Center the avatar and position for upper body view
+        // Better positioning to show face and upper body
         const box = new THREE.Box3().setFromObject(newAvatar);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
         
-        // Position avatar so head/shoulders are centered
+        // Position to show from stomach up
         newAvatar.position.x = -center.x;
-        newAvatar.position.y = -center.y + size.y * 0.15; // Show from chest up
-        newAvatar.position.z = -center.z;
+        newAvatar.position.y = -center.y + size.y * 0.180; // Show from stomach up to include face and torso
+        newAvatar.position.z = -center.z - 0.7; // Slightly forward
         
         newAvatar.traverse((child) => {
-          if (child.isMesh) {
+          if (child.isMesh && child.material) {
             child.castShadow = true;
             child.receiveShadow = true;
             
-            // Enhance materials for professional look
-            if (child.material) {
-              child.material.roughness = 0.7;
-              child.material.metalness = 0.1;
-              child.material.envMapIntensity = 0.8;
+            // Enhanced materials for girlfriend aesthetic - with proper null checks
+            if (child.material.roughness !== undefined) {
+              child.material.roughness = 0.6;
+            }
+            if (child.material.metalness !== undefined) {
+              child.material.metalness = 0.05;
+            }
+            if (child.material.envMapIntensity !== undefined) {
+              child.material.envMapIntensity = 1.2;
+            }
+            
+            // Add subtle glow to skin materials - with proper checks
+            if (child.material.name && child.material.name.includes('skin')) {
+              if (child.material.emissive !== undefined) {
+                child.material.emissive = new THREE.Color(0xffeee6);
+              }
+              if (child.material.emissiveIntensity !== undefined) {
+                child.material.emissiveIntensity = 0.05;
+              }
             }
           }
         });
@@ -78,7 +92,7 @@ function AvatarScene({ avatarUrl, isAvatarSpeaking }) {
         setMixer(newMixer);
         setIsLoading(false);
         
-        console.log('Avatar loaded for conference call view');
+        console.log('Girlfriend avatar loaded for intimate chat');
       },
       (progress) => {
         const percent = (progress.loaded / progress.total * 100);
@@ -101,53 +115,109 @@ function AvatarScene({ avatarUrl, isAvatarSpeaking }) {
       const time = state.clock.elapsedTime;
       
       if (isAvatarSpeaking) {
-        // Subtle speaking animations focused on head/neck area
-        const speakingIntensity = 0.6;
-        const headNod = Math.sin(time * 6) * 0.008 * speakingIntensity;
-        const headTurn = Math.sin(time * 4) * 0.012 * speakingIntensity;
-        const shoulderShift = Math.sin(time * 3) * 0.005 * speakingIntensity;
+        // Natural speaking animations for girlfriend
+        const speakingIntensity = 0.8;
+        const headNod = Math.sin(time * 5) * 0.012 * speakingIntensity;
+        const headTilt = Math.sin(time * 3.5) * 0.008 * speakingIntensity;
+        const eyeBlink = Math.sin(time * 8) * 0.004 * speakingIntensity;
         
-        // Natural head movements during conversation
-        avatarRef.current.rotation.x = headNod;
-        avatarRef.current.rotation.y = headTurn;
-        avatarRef.current.rotation.z = shoulderShift;
+        // Expressive head movements
+        avatarRef.current.rotation.x = headNod + eyeBlink;
+        avatarRef.current.rotation.y = headTilt;
+        avatarRef.current.rotation.z = Math.sin(time * 2.5) * 0.006 * speakingIntensity;
         
-        // Subtle breathing motion
-        const breathe = Math.sin(time * 2) * 0.003;
+        // Breathing and subtle body movement
+        const breathe = Math.sin(time * 2.2) * 0.008;
         avatarRef.current.position.y = breathe;
         
-        // Animate facial expressions if morph targets available
+        // Enhanced facial expressions with proper null checks
         if (avatar) {
           avatar.traverse((child) => {
-            if (child.isMesh && child.morphTargetInfluences) {
-              const morphIntensity = Math.abs(Math.sin(time * 10)) * 0.4;
-              // Animate mouth/jaw movements
-              if (child.morphTargetInfluences.length > 0) {
-                child.morphTargetInfluences[0] = morphIntensity;
-              }
-              if (child.morphTargetInfluences.length > 1) {
-                child.morphTargetInfluences[1] = morphIntensity * 0.5;
+            if (child.isMesh && child.morphTargetInfluences && child.morphTargetInfluences.length > 0) {
+              const morphIntensity = Math.abs(Math.sin(time * 12)) * 0.6;
+              const expressiveness = Math.abs(Math.sin(time * 4)) * 0.3;
+              
+              // Safely animate morph targets
+              try {
+                if (child.morphTargetInfluences[0] !== undefined) {
+                  child.morphTargetInfluences[0] = morphIntensity;
+                }
+                if (child.morphTargetInfluences[1] !== undefined) {
+                  child.morphTargetInfluences[1] = morphIntensity * 0.7;
+                }
+                if (child.morphTargetInfluences[2] !== undefined) {
+                  child.morphTargetInfluences[2] = expressiveness;
+                }
+              } catch (error) {
+                console.warn('Morph target animation error:', error);
               }
             }
           });
         }
       } else {
-        // Idle breathing and micro-movements
-        const idleBreathe = Math.sin(time * 1.5) * 0.002;
-        const idleSway = Math.sin(time * 0.8) * 0.003;
+        // Natural idle animations - no floating, more realistic movements
+        const subtleBreathe = Math.sin(time * 2.1) * 0.003; // Very subtle breathing
+        const gentleGaze = Math.sin(time * 0.5) * 0.006; // Slow head turns
+        const microTilt = Math.sin(time * 0.3) * 0.002; // Micro head tilts
         
-        avatarRef.current.rotation.x = idleBreathe;
-        avatarRef.current.rotation.y = idleSway;
-        avatarRef.current.rotation.z = 0;
-        avatarRef.current.position.y = idleBreathe;
+        // Remove floating - keep position stable, only subtle rotations
+        avatarRef.current.rotation.x = subtleBreathe;
+        avatarRef.current.rotation.y = gentleGaze;
+        avatarRef.current.rotation.z = microTilt;
+        // No position.y changes = no floating!
         
-        // Reset facial expressions
+        // Enhanced idle animations with hand/arm movements
         if (avatar) {
           avatar.traverse((child) => {
-            if (child.isMesh && child.morphTargetInfluences) {
-              child.morphTargetInfluences.forEach((_, i) => {
-                child.morphTargetInfluences[i] = 0;
-              });
+            // Hand and arm animations
+            if (child.name && (child.name.includes('Arm') || child.name.includes('Hand') || child.name.includes('Finger'))) {
+              const handTime = time * 0.8;
+              const isRightSide = child.name.includes('Right') || child.name.includes('_R');
+              const sideMultiplier = isRightSide ? 1 : -1;
+              
+              // Gentle hand gestures - like adjusting hair or resting position
+              if (child.name.includes('Shoulder')) {
+                child.rotation.z = Math.sin(handTime * 0.6) * 0.02 * sideMultiplier;
+              }
+              if (child.name.includes('UpperArm')) {
+                child.rotation.x = Math.sin(handTime * 0.4) * 0.03;
+                child.rotation.z = Math.sin(handTime * 0.5) * 0.015 * sideMultiplier;
+              }
+              if (child.name.includes('ForeArm')) {
+                child.rotation.y = Math.sin(handTime * 0.7) * 0.02 * sideMultiplier;
+              }
+              if (child.name.includes('Hand')) {
+                // Subtle hand movements - like fidgeting or gesturing
+                child.rotation.x = Math.sin(handTime * 1.2) * 0.01;
+                child.rotation.y = Math.sin(handTime * 0.9) * 0.015 * sideMultiplier;
+              }
+            }
+            
+            // Facial expressions and eye movements
+            if (child.isMesh && child.morphTargetInfluences && child.morphTargetInfluences.length > 0) {
+              try {
+                // Natural blinking pattern
+                const blinkCycle = Math.sin(time * 0.3) * 0.5 + 0.5; // Slower, more natural
+                const blinkIntensity = blinkCycle > 0.95 ? Math.sin(time * 15) * 0.3 : 0; // Quick blinks
+                
+                // Subtle expressions - looking thoughtful, slight smiles
+                const expressionCycle = Math.sin(time * 0.15) * 0.5 + 0.5;
+                const smileIntensity = expressionCycle > 0.7 ? 0.1 : 0.02;
+                
+                for (let i = 0; i < child.morphTargetInfluences.length; i++) {
+                  if (child.morphTargetInfluences[i] !== undefined) {
+                    if (i === 0) {
+                      child.morphTargetInfluences[i] = blinkIntensity; // Blink
+                    } else if (i === 1) {
+                      child.morphTargetInfluences[i] = smileIntensity; // Smile
+                    } else {
+                      child.morphTargetInfluences[i] = Math.sin(time * 0.2 + i) * 0.01; // Subtle expressions
+                    }
+                  }
+                }
+              } catch (error) {
+                console.warn('Idle morph target animation error:', error);
+              }
             }
           });
         }
@@ -157,84 +227,73 @@ function AvatarScene({ avatarUrl, isAvatarSpeaking }) {
 
   return (
     <>
-      {/* Professional conference lighting setup */}
-      <ambientLight intensity={0.6} color="#ffffff" />
+      {/* Home Office Lighting Setup */}
+      <ambientLight intensity={0.6} color="#f8f9fa" />
       
-      {/* Key light - main illumination */}
+      {/* Main office lighting - natural daylight */}
       <directionalLight 
-        position={[2, 3, 2]} 
-        intensity={1.5} 
+        position={[3, 5, 2]} 
+        intensity={1.2} 
         color="#ffffff"
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
         shadow-camera-far={50}
-        shadow-camera-left={-5}
-        shadow-camera-right={5}
-        shadow-camera-top={5}
-        shadow-camera-bottom={-5}
+        shadow-camera-left={-4}
+        shadow-camera-right={4}
+        shadow-camera-top={4}
+        shadow-camera-bottom={-4}
       />
       
-      {/* Fill light - soften shadows */}
+      {/* Soft fill light from window */}
       <directionalLight 
-        position={[-1, 2, 1]} 
+        position={[-2, 3, 1]} 
         intensity={0.4} 
-        color="#f0f8ff"
+        color="#e3f2fd"
       />
       
-      {/* Rim light - separation from background */}
-      <directionalLight 
-        position={[0, 1, -2]} 
+      {/* Warm desk lamp light */}
+      <pointLight 
+        position={[-1.5, 1, -1]} 
         intensity={0.3} 
-        color="#e6f3ff"
+        color="#fff3e0"
+        distance={3}
       />
       
-      {/* Subtle background sphere for depth */}
-      <Sphere args={[8, 32, 32]} position={[0, 0, -3]}>
-        <meshBasicMaterial 
-          color="#f8fafe" 
-          transparent 
-          opacity={0.1}
-          side={THREE.BackSide}
-        />
-      </Sphere>
+             {/* No background in 3D scene - using CSS background instead */}
       
       {avatar && (
-        <group ref={groupRef} position={[0, 0, 0]}>
+        <group ref={groupRef} position={[0, -0.5, 0]}>
           <group ref={avatarRef}>
             <primitive object={avatar} />
           </group>
           
-          {/* Subtle ground reflection */}
+          {/* Soft ground reflection */}
           <ContactShadows 
-            position={[0, -1.2, 0]}
-            opacity={0.2}
-            scale={3}
-            blur={2}
-            far={1}
-            color="#1a1a1a"
+            position={[0, -1.8, 0]}
+            opacity={0.15}
+            scale={4}
+            blur={3}
+            far={2}
+            color="#ff69b4"
           />
         </group>
       )}
       
-      {/* Loading indicator with professional styling */}
+      {/* Loading indicator with romantic styling */}
       {isLoading && (
         <group position={[0, 0, 0]}>
-          <Sphere args={[0.15, 16, 16]}>
+          <Sphere args={[0.2, 16, 16]}>
             <meshStandardMaterial 
-              color="#667eea" 
-              emissive="#667eea"
-              emissiveIntensity={0.3}
+              color="#ff69b4" 
               transparent
-              opacity={0.8}
+              opacity={0.9}
             />
           </Sphere>
-          <mesh position={[0, 0.4, 0]} rotation={[0, 0, Math.PI / 4]}>
-            <torusGeometry args={[0.12, 0.03, 8, 16]} />
+          <mesh position={[0, 0.5, 0]} rotation={[0, 0, Math.PI / 4]}>
+            <torusGeometry args={[0.15, 0.04, 8, 16]} />
             <meshStandardMaterial 
-              color="#764ba2"
-              emissive="#764ba2"
-              emissiveIntensity={0.4}
+              color="#e879f9"
             />
           </mesh>
         </group>
@@ -243,66 +302,53 @@ function AvatarScene({ avatarUrl, isAvatarSpeaking }) {
       {/* Error indicator */}
       {loadError && (
         <group position={[0, 0, 0]}>
-          <Sphere args={[0.3, 16, 16]}>
+          <Sphere args={[0.4, 16, 16]}>
             <meshStandardMaterial 
               color="#ff6b6b" 
-              emissive="#ff6b6b"
-              emissiveIntensity={0.2}
             />
           </Sphere>
         </group>
       )}
       
-      {/* Professional avatar placeholder when no avatar loaded */}
+      {/* Girlfriend placeholder when no avatar loaded */}
       {!avatarUrl && !isLoading && (
-        <group position={[0, 0.2, 0]}>
-          {/* Head */}
-          <Sphere args={[0.25, 16, 16]} position={[0, 0.3, 0]}>
+        <group position={[0, 0.4, 0]}>
+          {/* Head with feminine features */}
+          <Sphere args={[0.3, 16, 16]} position={[0, 0.4, 0]}>
             <meshStandardMaterial 
-              color="#e8eaf0"
-              roughness={0.8}
+              color="#fce4ec"
+              roughness={0.4}
               metalness={0.1}
             />
           </Sphere>
           
-          {/* Shoulders/torso */}
-          <mesh position={[0, -0.1, 0]} scale={[0.8, 0.6, 0.5]}>
-            <cylinderGeometry args={[0.3, 0.35, 0.6, 16]} />
+          {/* Body/shoulders */}
+          <mesh position={[0, -0.05, 0]} scale={[0.9, 0.7, 0.6]}>
+            <cylinderGeometry args={[0.35, 0.4, 0.7, 16]} />
             <meshStandardMaterial 
-              color="#d1d5db"
-              roughness={0.7}
+              color="#f8bbd9"
+              roughness={0.6}
               metalness={0.1}
             />
           </mesh>
           
-          {/* Professional suit collar suggestion */}
-          <mesh position={[0, 0.05, 0.15]} scale={[0.6, 0.3, 0.1]}>
-            <boxGeometry args={[0.5, 0.2, 0.1]} />
+          {/* Hair suggestion */}
+          <Sphere args={[0.35, 16, 16]} position={[0, 0.55, -0.1]}>
             <meshStandardMaterial 
-              color="#374151"
-              roughness={0.6}
-              metalness={0.2}
+              color="#8b4513"
+              roughness={0.8}
+              metalness={0.05}
             />
-          </mesh>
+          </Sphere>
         </group>
       )}
       
-      <OrbitControls
-        enablePan={false}
-        enableZoom={true}
-        enableRotate={true}
-        minDistance={1.5}
-        maxDistance={3}
-        minPolarAngle={Math.PI / 3}
-        maxPolarAngle={Math.PI / 2}
-        target={[0, 0.2, 0]}
-        autoRotate={false}
-      />
+      {/* No camera controls - fixed romantic view */}
       
       <Environment 
-        preset="studio"
+        preset="sunset"
         background={false}
-        environmentIntensity={0.3}
+        environmentIntensity={0.4}
       />
     </>
   );

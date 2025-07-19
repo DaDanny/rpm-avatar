@@ -318,13 +318,6 @@ function ChatInterface({ onAvatarSpeakingChange, onConnectionStatusChange }) {
             </div>
           )}
         </div>
-
-        <div className="chat-help">
-          <p>
-            💬 Type a message or 🎤 record your voice to chat with the AI avatar.
-            The avatar will respond with both text and speech!
-          </p>
-        </div>
       </div>
     </div>
   );

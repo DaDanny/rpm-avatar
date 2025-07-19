@@ -1,31 +1,56 @@
 .App {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
 }
 
-.app-header {
-  background: rgba(255, 255, 255, 0.1);
+/* Fullscreen Avatar Background */
+.avatar-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  background-image: url('./assets/office_1.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.avatar-background canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Header Overlay */
+.app-header-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(20px);
-  padding: 20px 30px;
+  padding: 15px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 100;
 }
 
-.app-header h1 {
+.app-header-overlay h1 {
   color: white;
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 700;
   background: linear-gradient(45deg, #ffffff, #e3f2fd);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .connection-info {
@@ -34,370 +59,117 @@
   gap: 10px;
 }
 
-.connection-info .connected {
-  color: #4caf50;
-  font-weight: 600;
+.connected, .disconnected {
   padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.connected {
   background: rgba(76, 175, 80, 0.2);
-  border-radius: 20px;
+  color: #c8e6c9;
   border: 1px solid rgba(76, 175, 80, 0.3);
-  backdrop-filter: blur(10px);
 }
 
-.connection-info .disconnected {
-  color: #ff9800;
-  font-weight: 600;
-  padding: 8px 16px;
+.disconnected {
   background: rgba(255, 152, 0, 0.2);
-  border-radius: 20px;
+  color: #ffe0b2;
   border: 1px solid rgba(255, 152, 0, 0.3);
-  backdrop-filter: blur(10px);
 }
 
-.app-main {
-  flex: 1;
-  padding: 30px;
+/* Chat Overlay at Bottom */
+.chat-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(30px);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  max-height: 50vh;
   overflow: hidden;
 }
 
-.content-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  height: 100%;
-  max-height: calc(100vh - 200px);
-}
-
-.avatar-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: 0;
-}
-
-.avatar-container {
-  position: relative;
-  background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 16px;
-  overflow: hidden;
-  flex: 1;
-  min-height: 400px;
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* Video call frame styling */
-.avatar-container::before {
-  content: '';
+/* Speaking Indicator Overlay */
+.speaking-indicator-overlay {
   position: absolute;
-  top: 8px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 8px;
-  background: #ef4444;
-  border-radius: 50%;
-  z-index: 20;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
-  animation: recordingPulse 2s ease-in-out infinite;
-}
-
-.avatar-container::after {
-  content: 'LIVE';
-  position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #ef4444;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-  z-index: 20;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.avatar-status {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 10;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  pointer-events: none;
 }
 
 .speaking-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(225, 112, 85, 0.9);
+  gap: 12px;
+  background: rgba(255, 20, 147, 0.9);
   color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.9rem;
+  padding: 12px 20px;
+  border-radius: 30px;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(225, 112, 85, 0.3);
+  font-size: 1rem;
+  box-shadow: 0 8px 32px rgba(255, 20, 147, 0.4);
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .speaking-dot {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   background: white;
   border-radius: 50%;
-  animation: speakingPulse 1s infinite;
+  animation: speaking-pulse 1.5s ease-in-out infinite;
 }
 
-@keyframes speakingPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.6; transform: scale(1.2); }
-}
-
-.avatar-controls {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.avatar-input {
-  margin-bottom: 20px;
-}
-
-.avatar-input label {
-  display: block;
-  color: white;
-  font-weight: 600;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
-}
-
-.avatar-input input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.avatar-input input:focus {
-  outline: none;
-  border-color: rgba(102, 126, 234, 0.6);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-}
-
-.avatar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.create-avatar-btn {
-  display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  text-decoration: none;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  text-align: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.create-avatar-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
-}
-
-.sample-avatars {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sample-avatars p {
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.sample-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.sample-btn {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.sample-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-}
-
-.chat-section {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-footer {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  padding: 20px 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.instructions {
-  max-width: 800px;
-  margin: 0 auto;
-  text-align: center;
-}
-
-.instructions h3 {
-  color: white;
-  margin: 0 0 15px 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-}
-
-.instructions ol {
-  color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex-wrap: wrap;
-}
-
-.instructions li {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 10px 15px;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  min-width: 160px;
-  text-align: center;
-}
-
-/* Responsive Design */
-@media (max-width: 1200px) {
-  .content-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 20px;
+@keyframes speaking-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
-  
-  .avatar-container {
-    min-height: 300px;
-  }
-  
-  .avatar-controls {
-    padding: 15px;
-  }
-  
-  .avatar-actions {
-    flex-direction: row;
-    align-items: center;
-  }
-  
-  .sample-avatars {
-    flex-direction: row;
-    align-items: center;
-    gap: 15px;
-  }
-  
-  .sample-buttons {
-    gap: 8px;
+  50% {
+    opacity: 0.6;
+    transform: scale(1.2);
   }
 }
 
+/* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .app-header {
-    padding: 15px 20px;
-    flex-direction: column;
-    gap: 10px;
+  .app-header-overlay {
+    padding: 12px 20px;
   }
   
-  .app-header h1 {
+  .app-header-overlay h1 {
     font-size: 1.5rem;
   }
   
-  .app-main {
-    padding: 20px;
+  .connected, .disconnected {
+    font-size: 0.8rem;
+    padding: 6px 12px;
   }
   
-  .content-layout {
-    gap: 15px;
-  }
-  
-  .avatar-container {
-    min-height: 250px;
-  }
-  
-  .avatar-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .sample-avatars {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-  
-  .instructions ol {
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-  }
-  
-  .instructions li {
-    min-width: auto;
-    max-width: 300px;
+  .chat-overlay {
+    max-height: 60vh;
   }
 }
 
 @media (max-width: 480px) {
-  .app-header {
+  .app-header-overlay {
     padding: 10px 15px;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
   }
   
-  .app-header h1 {
+  .app-header-overlay h1 {
     font-size: 1.3rem;
   }
   
-  .app-main {
-    padding: 15px;
-  }
-  
-  .avatar-container {
-    min-height: 200px;
-  }
-  
-  .avatar-controls {
-    padding: 12px;
-  }
-  
-  .app-footer {
-    padding: 15px;
+  .chat-overlay {
+    max-height: 70vh;
   }
 }
