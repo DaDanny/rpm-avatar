@@ -1,0 +1,105 @@
+.test-controls {
+  background: #333;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  color: white;
+}
+
+.test-controls h3 {
+  margin-top: 0;
+  color: #61dafb;
+}
+
+.test-description {
+  color: #ccc;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.test-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.test-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #4CAF50;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.test-btn:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.test-btn:disabled {
+  background: #666;
+  cursor: not-allowed;
+}
+
+.speaking-controls {
+  background: #444;
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.speaking-indicator {
+  color: #61dafb;
+  font-weight: bold;
+  margin-bottom: 10px;
+  animation: pulse 1s infinite;
+}
+
+.stop-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #f44336;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.stop-btn:hover {
+  background: #da190b;
+}
+
+.current-text {
+  background: #2a2a2a;
+  padding: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #61dafb;
+}
+
+.current-text h4 {
+  margin-top: 0;
+  color: #61dafb;
+  font-size: 14px;
+}
+
+.current-text ul {
+  margin: 10px 0 0 0;
+  padding-left: 20px;
+}
+
+.current-text li {
+  color: #ccc;
+  font-size: 13px;
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
