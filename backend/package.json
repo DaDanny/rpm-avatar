@@ -15,7 +15,7 @@
     "@google-cloud/text-to-speech": "^5.0.0",
     "@google-cloud/speech": "^6.0.0",
     "@google/generative-ai": "^0.2.0",
-    "multer": "^1.4.5",
+    "multer": "^1.4.4",
     "dotenv": "^16.3.0",
     "uuid": "^9.0.0",
     "fs-extra": "^11.1.0"

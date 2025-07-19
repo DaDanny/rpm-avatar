@@ -34,7 +34,7 @@ function ChatInterface({ onAvatarSpeakingChange, onConnectionStatusChange }) {
 
     // Cleanup on unmount
     return () => {
-      socketService.disconnect();
+      cleanupConnection();
       audioService.cleanup();
     };
   }, [onAvatarSpeakingChange]);
@@ -49,56 +49,66 @@ function ChatInterface({ onAvatarSpeakingChange, onConnectionStatusChange }) {
 
   const initializeConnection = () => {
     try {
+      // Clear any existing listeners first
+      cleanupConnection();
+      
       socketService.connect();
 
-      socketService.on('connected', () => {
-        setIsConnected(true);
-        setError(null);
-        addSystemMessage('Connected to AI avatar! 🤖');
-      });
-
-      socketService.on('disconnected', () => {
-        setIsConnected(false);
-        addSystemMessage('Disconnected from server 😞');
-      });
-
-      socketService.on('user_message', (data) => {
-        addMessage('user', data.text);
-      });
-
-      socketService.on('ai_response', (data) => {
-        addMessage('ai', data.text);
-      });
-
-      socketService.on('audio_response', async (data) => {
-        try {
-          await audioService.playAudio(data.audioBuffer, data.format);
-        } catch (error) {
-          console.error('Error playing audio response:', error);
-          addSystemMessage('Error playing audio response');
+      // Store handler references for cleanup
+      const handlers = {
+        connected: () => {
+          setIsConnected(true);
+          setError(null);
+          addSystemMessage('Connected to AI avatar! 🤖');
+        },
+        disconnected: () => {
+          setIsConnected(false);
+          addSystemMessage('Disconnected from server 😞');
+        },
+        user_message: (data) => {
+          addMessage('user', data.text);
+        },
+        ai_response: (data) => {
+          addMessage('ai', data.text);
+        },
+        audio_response: async (data) => {
+          try {
+            await audioService.playAudio(data.audioBuffer, data.format);
+          } catch (error) {
+            console.error('Error playing audio response:', error);
+            addSystemMessage('Error playing audio response');
+          }
+        },
+        processing_status: (data) => {
+          setProcessingStatus(data.status);
+          setIsProcessing(data.status !== 'complete');
+        },
+        error: (error) => {
+          setError(error.message);
+          setIsProcessing(false);
+          addSystemMessage(`Error: ${error.message}`, 'error');
+        },
+        context_cleared: () => {
+          setMessages([]);
+          addSystemMessage('Conversation cleared');
         }
-      });
+      };
 
-      socketService.on('processing_status', (data) => {
-        setProcessingStatus(data.status);
-        setIsProcessing(data.status !== 'complete');
-      });
-
-      socketService.on('error', (error) => {
-        setError(error.message);
-        setIsProcessing(false);
-        addSystemMessage(`Error: ${error.message}`, 'error');
-      });
-
-      socketService.on('context_cleared', () => {
-        setMessages([]);
-        addSystemMessage('Conversation cleared');
+      // Register all handlers
+      Object.entries(handlers).forEach(([event, handler]) => {
+        socketService.on(event, handler);
       });
 
     } catch (error) {
       console.error('Error initializing connection:', error);
       setError('Failed to connect to server');
     }
+  };
+
+  const cleanupConnection = () => {
+    // Clear all event listeners first, then disconnect
+    socketService.clearListeners();
+    socketService.disconnect();
   };
 
   const initializeAudio = async () => {
@@ -118,7 +128,7 @@ function ChatInterface({ onAvatarSpeakingChange, onConnectionStatusChange }) {
 
   const addMessage = (sender, text) => {
     setMessages(prev => [...prev, {
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       sender,
       text,
       timestamp: new Date()
@@ -127,7 +137,7 @@ function ChatInterface({ onAvatarSpeakingChange, onConnectionStatusChange }) {
 
   const addSystemMessage = (text, type = 'info') => {
     setMessages(prev => [...prev, {
-      id: Date.now(),
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       sender: 'system',
       text,
       type,
@@ -153,10 +163,11 @@ function ChatInterface({ onAvatarSpeakingChange, onConnectionStatusChange }) {
     try {
       if (isRecording) {
         // Stop recording and send audio
-        const audioBlob = await audioService.stopRecording();
-        if (audioBlob) {
-          const arrayBuffer = await audioService.blobToArrayBuffer(audioBlob);
-          socketService.sendAudioMessage(arrayBuffer, 'webm');
+        const audioResult = await audioService.stopRecording();
+        if (audioResult) {
+          const { blob, format } = audioResult;
+          const arrayBuffer = await audioService.blobToArrayBuffer(blob);
+          socketService.sendAudioMessage(arrayBuffer, format);
           setIsProcessing(true);
         }
       } else {

@@ -5,17 +5,25 @@ class SocketService {
     this.socket = null;
     this.isConnected = false;
     this.listeners = new Map();
+    
+    // Get backend URL from environment variable
+    this.backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
   }
 
-  connect(url = 'http://localhost:3001') {
+  connect(url = this.backendUrl) {
     if (this.socket) {
       this.disconnect();
     }
 
+    console.log('Connecting to backend:', url);
+
     this.socket = io(url, {
       transports: ['websocket', 'polling'],
       upgrade: true,
-      rememberUpgrade: true
+      rememberUpgrade: true,
+      timeout: 20000,
+      forceNew: true,
+      withCredentials: true
     });
 
     this.socket.on('connect', () => {
@@ -28,6 +36,12 @@ class SocketService {
       console.log('Disconnected from server');
       this.isConnected = false;
       this.emit('disconnected');
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      this.isConnected = false;
+      this.emit('error', { message: `Connection failed: ${error.message}`, type: 'connection_error' });
     });
 
     this.socket.on('error', (error) => {
@@ -65,6 +79,8 @@ class SocketService {
       this.socket = null;
       this.isConnected = false;
     }
+    // Clear all event listeners
+    this.listeners.clear();
   }
 
   // Send audio message to backend
@@ -118,6 +134,15 @@ class SocketService {
     }
   }
 
+  // Clear all listeners for an event
+  clearListeners(event) {
+    if (event) {
+      this.listeners.delete(event);
+    } else {
+      this.listeners.clear();
+    }
+  }
+
   emit(event, data) {
     if (this.listeners.has(event)) {
       this.listeners.get(event).forEach(callback => {
@@ -154,6 +179,10 @@ class SocketService {
 
   getConnectionStatus() {
     return this.isConnected;
+  }
+
+  getBackendUrl() {
+    return this.backendUrl;
   }
 }
 

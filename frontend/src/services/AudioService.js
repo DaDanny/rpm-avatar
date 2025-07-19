@@ -51,10 +51,10 @@ class AudioService {
     try {
       this.recorder = new RecordRTC(this.stream, {
         type: 'audio',
-        mimeType: 'audio/webm;codecs=opus',
+        mimeType: 'audio/wav',
         recorderType: RecordRTC.StereoAudioRecorder,
         numberOfAudioChannels: 1,
-        desiredSampRate: 48000,
+        desiredSampRate: 44100, // Standard WAV sample rate
         timeSlice: 1000,
         ondataavailable: (blob) => {
           // Real-time data if needed for streaming
@@ -75,7 +75,7 @@ class AudioService {
     }
   }
 
-  // Stop recording and return audio blob
+  // Stop recording and return audio blob with format info
   async stopRecording() {
     if (!this.isRecording || !this.recorder) {
       console.warn('Not currently recording');
@@ -92,14 +92,30 @@ class AudioService {
             this.onRecordingStop();
           }
 
-          console.log('Recording stopped, blob size:', blob.size);
-          resolve(blob);
+          // Detect the actual format from the blob
+          const format = this.detectAudioFormat(blob);
+          console.log('Recording stopped, blob size:', blob.size, 'format:', format);
+          
+          resolve({ blob, format });
         } catch (error) {
           console.error('Error stopping recording:', error);
           reject(new Error(`Failed to stop recording: ${error.message}`));
         }
       });
     });
+  }
+
+  // Detect audio format from blob
+  detectAudioFormat(blob) {
+    if (blob.type) {
+      if (blob.type.includes('wav')) return 'wav';
+      if (blob.type.includes('webm')) return 'webm';
+      if (blob.type.includes('mp3')) return 'mp3';
+      if (blob.type.includes('ogg')) return 'ogg';
+    }
+    
+    // Default to wav if we can't detect
+    return 'wav';
   }
 
   // Convert blob to ArrayBuffer
@@ -115,8 +131,11 @@ class AudioService {
   // Play audio from base64 string
   async playAudio(base64Audio, format = 'mp3') {
     try {
-      // Stop any currently playing audio
-      this.stopAudio();
+      // Gently stop any currently playing audio without interrupting
+      if (this.currentAudio && !this.currentAudio.paused) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
 
       // Convert base64 to blob
       const binaryString = atob(base64Audio);
@@ -128,22 +147,23 @@ class AudioService {
 
       // Create audio URL and play
       const audioUrl = URL.createObjectURL(blob);
-      this.currentAudio = new Audio(audioUrl);
+      const newAudio = new Audio(audioUrl);
       
-      this.currentAudio.onplay = () => {
+      // Set up event handlers before assigning to currentAudio
+      newAudio.onplay = () => {
         if (this.onAudioPlayStart) {
           this.onAudioPlayStart();
         }
       };
 
-      this.currentAudio.onended = () => {
+      newAudio.onended = () => {
         URL.revokeObjectURL(audioUrl);
         if (this.onAudioPlayEnd) {
           this.onAudioPlayEnd();
         }
       };
 
-      this.currentAudio.onerror = (error) => {
+      newAudio.onerror = (error) => {
         console.error('Error playing audio:', error);
         URL.revokeObjectURL(audioUrl);
         if (this.onAudioPlayEnd) {
@@ -151,6 +171,12 @@ class AudioService {
         }
       };
 
+      // Assign to currentAudio only after setup
+      this.currentAudio = newAudio;
+
+      // Add a small delay to ensure the audio is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       await this.currentAudio.play();
       console.log('Audio playback started');
     } catch (error) {
@@ -158,7 +184,8 @@ class AudioService {
       if (this.onAudioPlayEnd) {
         this.onAudioPlayEnd();
       }
-      throw new Error(`Failed to play audio: ${error.message}`);
+      // Don't throw error for audio playback failures - just log them
+      console.warn('Audio playback failed, but continuing...');
     }
   }
 

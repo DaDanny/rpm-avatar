@@ -10,21 +10,53 @@ const SpeechToTextService = require('./services/SpeechToTextService');
 
 const app = express();
 const server = http.createServer(app);
+
+// Production-ready CORS configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000', // Keep for local development
+  /\.web\.app$/, // Allow Firebase Hosting domains
+  /\.firebaseapp\.com$/, // Allow Firebase app domains
+  /\.run\.app$/ // Allow Cloud Run domains
+];
+
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
+
+// Basic info endpoint
+app.get('/', (req, res) => {
+  res.json({
+    name: 'AI Avatar Chat Backend',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      websocket: 'Available via Socket.IO'
+    }
+  });
 });
 
 // Initialize services
@@ -201,12 +233,33 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+// Use PORT environment variable (required for Cloud Run)
+const PORT = process.env.PORT || 8080;
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Avatar Chat Backend running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('Services initialized:');
   console.log('  ✅ Gemini AI Service');
   console.log('  ✅ Text-to-Speech Service');
   console.log('  ✅ Speech-to-Text Service');
   console.log('  ✅ Socket.IO Server');
+  console.log(`  🌐 Health check available at http://localhost:${PORT}/health`);
 });

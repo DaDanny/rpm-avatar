@@ -27,11 +27,22 @@ class SpeechToTextService {
         .map(result => result.alternatives[0].transcript)
         .join('\n');
 
-      console.log('Transcription:', transcription);
+      console.log('Transcription result:', transcription);
+      
+      if (!transcription || transcription.trim().length === 0) {
+        console.warn('No speech detected in audio');
+        return '';
+      }
+      
       return transcription;
     } catch (error) {
       console.error('Error in speech-to-text:', error);
-      throw new Error('Failed to transcribe audio');
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details
+      });
+      throw new Error(`Failed to transcribe audio: ${error.message}`);
     }
   }
 
@@ -65,7 +76,9 @@ class SpeechToTextService {
   }
 
   // Handle different audio formats
-  async transcribeWithFormat(audioBuffer, format = 'webm') {
+  async transcribeWithFormat(audioBuffer, format = 'wav') {
+    console.log(`Transcribing audio: format=${format}, buffer size=${audioBuffer.length} bytes`);
+    
     const formatConfig = {
       webm: {
         encoding: 'WEBM_OPUS',
@@ -85,7 +98,8 @@ class SpeechToTextService {
       }
     };
 
-    const config = formatConfig[format.toLowerCase()] || formatConfig.webm;
+    const config = formatConfig[format.toLowerCase()] || formatConfig.wav;
+    console.log(`Using Google Cloud config: encoding=${config.encoding}, sampleRate=${config.sampleRate}`);
     
     return await this.transcribeAudio(audioBuffer, {
       encoding: config.encoding,
